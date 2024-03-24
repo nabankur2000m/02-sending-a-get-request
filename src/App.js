@@ -7,6 +7,9 @@ function App() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [title, setTitle] = useState('');
+  const [openingText, setOpeningText] = useState('');
+  const [releaseDate, setReleaseDate] = useState('');
 
   const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
@@ -16,9 +19,7 @@ function App() {
       if (!response.ok) {
         throw new Error('Something went wrong!');
       }
-
       const data = await response.json();
-
       const transformedMovies = data.results.map((movieData) => {
         return {
           id: movieData.episode_id,
@@ -38,22 +39,49 @@ function App() {
     fetchMoviesHandler();
   }, [fetchMoviesHandler]);
 
-  let content = <p>Found no movies.</p>;
+  const addMovieHandler = useCallback((event) => {
+    event.preventDefault(); 
+    const newMovie = {
+      title,
+      openingText,
+      releaseDate,
+    };
+    console.log(newMovie);
+    setTitle('');
+    setOpeningText('');
+    setReleaseDate('');
+  }, [title, openingText, releaseDate]);
 
+  let content = <p>Found no movies.</p>;
   if (movies.length > 0) {
     content = <MoviesList movies={movies} />;
   }
-
   if (error) {
     content = <p>{error}</p>;
   }
-
   if (isLoading) {
     content = <p>Loading...</p>;
   }
 
   return (
     <React.Fragment>
+      <section>
+        <form onSubmit={addMovieHandler}>
+          <div className="form-control">
+            <label htmlFor="title">Title</label>
+            <input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} />
+          </div>
+          <div className="form-control">
+            <label htmlFor="openingText">Opening Text</label>
+            <textarea rows="5" id="openingText" value={openingText} onChange={e => setOpeningText(e.target.value)}></textarea>
+          </div>
+          <div className="form-control">
+            <label htmlFor="releaseDate">Release Date</label>
+            <input type="date" id="releaseDate" value={releaseDate} onChange={e => setReleaseDate(e.target.value)} />
+          </div>
+          <button type="submit">Add Movie</button>
+        </form>
+      </section>
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>
