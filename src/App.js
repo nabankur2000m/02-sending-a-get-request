@@ -1,34 +1,37 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 import MoviesList from './components/MoviesList';
+import AddMovie from './components/AddMovie';
 import './App.css';
 
 function App() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [title, setTitle] = useState('');
-  const [openingText, setOpeningText] = useState('');
-  const [releaseDate, setReleaseDate] = useState('');
 
   const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('https://swapi.dev/api/films/');
+      const response = await fetch('https://react-project-nabankur-default-rtdb.asia-southeast1.firebasedatabase.app/movies.json');
       if (!response.ok) {
         throw new Error('Something went wrong!');
       }
+
       const data = await response.json();
-      const transformedMovies = data.results.map((movieData) => {
-        return {
-          id: movieData.episode_id,
-          title: movieData.title,
-          openingText: movieData.opening_crawl,
-          releaseDate: movieData.release_date,
-        };
-      });
-      setMovies(transformedMovies);
+
+      const loadedMovies = [];
+
+      for (const key in data) {
+        loadedMovies.push({
+          id: key,
+          title: data[key].title,
+          openingText: data[key].openingText,
+          releaseDate: data[key].releaseDate,
+        });
+      }
+
+      setMovies(loadedMovies);
     } catch (error) {
       setError(error.message);
     }
@@ -39,48 +42,55 @@ function App() {
     fetchMoviesHandler();
   }, [fetchMoviesHandler]);
 
-  const addMovieHandler = useCallback((event) => {
-    event.preventDefault(); 
-    const newMovie = {
-      title,
-      openingText,
-      releaseDate,
-    };
-    console.log(newMovie);
-    setTitle('');
-    setOpeningText('');
-    setReleaseDate('');
-  }, [title, openingText, releaseDate]);
+  async function addMovieHandler(movie) {
+    const response = await fetch('https://react-project-nabankur-default-rtdb.asia-southeast1.firebasedatabase.app/movies.json', {
+      method: 'POST',
+      body: JSON.stringify(movie),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    console.log(data);
+  }
 
   let content = <p>Found no movies.</p>;
+
   if (movies.length > 0) {
     content = <MoviesList movies={movies} />;
   }
+
   if (error) {
     content = <p>{error}</p>;
   }
+
   if (isLoading) {
     content = <p>Loading...</p>;
   }
 
+
+  const deleteMovieHandler = async (movieId) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://react-project-nabankur-default-rtdb.asia-southeast1.firebasedatabase.app/movies/${movieId}.json`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Could not delete movie.');
+      }
+  
+
+      setMovies(prevMovies => prevMovies.filter(movie => movie.id !== movieId));
+    } catch (error) {
+      setError(error.message);
+    }
+    setIsLoading(false);
+  };
+  
   return (
     <React.Fragment>
       <section>
-        <form onSubmit={addMovieHandler}>
-          <div className="form-control">
-            <label htmlFor="title">Title</label>
-            <input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="form-control">
-            <label htmlFor="openingText">Opening Text</label>
-            <textarea rows="5" id="openingText" value={openingText} onChange={e => setOpeningText(e.target.value)}></textarea>
-          </div>
-          <div className="form-control">
-            <label htmlFor="releaseDate">Release Date</label>
-            <input type="date" id="releaseDate" value={releaseDate} onChange={e => setReleaseDate(e.target.value)} />
-          </div>
-          <button type="submit">Add Movie</button>
-        </form>
+        <AddMovie onAddMovie={addMovieHandler} />
       </section>
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
